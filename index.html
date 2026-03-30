@@ -108,6 +108,62 @@
             color: white;
             text-align: left;
             box-shadow: 0 2px 8px rgba(6, 105, 90, 0.12);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-header::after {
+            content: "";
+            position: absolute;
+            inset: auto -40px -60px auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 68%);
+            pointer-events: none;
+        }
+
+        .header-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.18);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .header-kicker::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #9cf1da;
+            box-shadow: 0 0 0 4px rgba(156,241,218,0.18);
+        }
+
+        .header-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .header-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.14);
+            font-size: 0.78rem;
+            font-weight: 600;
         }
 
         .form-header h1 {
@@ -143,13 +199,42 @@
             border: 1px solid var(--border);
             background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
             border-radius: var(--radius-md);
-            padding: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 44px;
             min-height: 56px;
             display: grid;
             align-content: center;
             gap: 2px;
             transition: var(--transition);
             box-shadow: 0 1px 2px rgba(24,34,48,0.04);
+            position: relative;
+        }
+
+        .step-chip::before {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: var(--muted);
+            background: var(--secondary);
+            border: 1px solid var(--border-light);
+        }
+
+        .step-chip:nth-child(1)::before { content: "1"; }
+        .step-chip:nth-child(2)::before { content: "2"; }
+        .step-chip:nth-child(3)::before { content: "3"; }
+
+        .step-chip.active::before,
+        .step-chip.completed::before {
+            color: white;
+            background: var(--primary);
+            border-color: var(--primary);
         }
 
         .step-chip .step-kicker {
@@ -186,6 +271,11 @@
             transition: var(--transition);
             background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
             box-shadow: 0 2px 8px rgba(24,34,48,0.05);
+        }
+
+        .form-section:hover {
+            border-color: #c7d4df;
+            box-shadow: 0 10px 24px -20px rgba(24,34,48,0.5);
         }
 
         .form-section.is-active {
@@ -637,6 +727,19 @@
             padding: var(--spacing-lg);
             box-shadow: 0 4px 12px rgba(12, 122, 105, 0.08);
             margin-top: var(--spacing-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cost-summary::after {
+            content: "";
+            position: absolute;
+            inset: auto -20px -35px auto;
+            width: 120px;
+            height: 120px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(12,122,105,0.14) 0%, rgba(12,122,105,0) 70%);
+            pointer-events: none;
         }
 
         .cost-total {
@@ -835,6 +938,65 @@
             display: none;
         }
 
+        .map-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(24,34,48,0.16) 0%, rgba(24,34,48,0) 24%, rgba(24,34,48,0.22) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .map-overlay-card {
+            position: absolute;
+            top: var(--spacing-lg);
+            left: var(--spacing-lg);
+            z-index: 2;
+            max-width: 320px;
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.75);
+            box-shadow: 0 20px 40px -28px rgba(24,34,48,0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .map-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--secondary);
+            color: var(--primary-dark);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .map-badge::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--primary);
+        }
+
+        .map-overlay-card h2 {
+            margin: var(--spacing-md) 0 var(--spacing-sm);
+            font-size: 1.2rem;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .map-overlay-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
         @media (min-width: 760px) {
             .map-panel {
                 display: block;
@@ -872,6 +1034,18 @@
                 border-radius: 18px 18px 0 0;
                 border: none;
                 box-shadow: 0 -10px 24px -18px rgba(24,34,48,0.45);
+            }
+
+            .map-overlay-card {
+                top: 12px;
+                left: 12px;
+                right: 12px;
+                max-width: none;
+                padding: var(--spacing-md);
+            }
+
+            .map-overlay-card h2 {
+                font-size: 1rem;
             }
 
             .form-header {
@@ -1040,6 +1214,11 @@
 
         /* ===== SMALL MOBILE ADJUSTMENTS ===== */
         @media (max-width: 420px) {
+            .header-summary {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
             .form-header h1 {
                 font-size: 1.18rem;
             }
@@ -1095,8 +1274,14 @@
         <!-- FORM PANEL -->
         <div class="form-panel">
             <div class="form-header">
+                <div class="header-kicker">KM Car Rental Planner</div>
                 <h1>Trip Cost Calculator</h1>
-                <p>Philippines route estimator</p>
+                <p>Plan a Philippines trip route, compare options, and get a live estimate before booking.</p>
+                <div class="header-summary">
+                    <span class="header-pill">Live route estimate</span>
+                    <span class="header-pill">Mapbox-powered</span>
+                    <span class="header-pill">Mobile ready</span>
+                </div>
                 <button type="button" id="mapToggleBtn" class="map-toggle">Hide map</button>
             </div>
 
@@ -1340,6 +1525,11 @@
 
         <!-- MAP PANEL -->
         <div class="map-panel">
+            <div class="map-overlay-card">
+                <span class="map-badge">Live route planner</span>
+                <h2>Choose your route and get a usable estimate fast.</h2>
+                <p>Set pickup and destination first, then refine route options and cost inputs as needed.</p>
+            </div>
             <div id="routeMap"></div>
         </div>
     </div>
@@ -1417,6 +1607,7 @@
             stepChip3: document.getElementById("stepChip3"),
             sectionStep2a: document.getElementById("sectionStep2a"),
             sectionStep2b: document.getElementById("sectionStep2b"),
+            sectionStep3: document.getElementById("sectionStep3"),
             formContent: document.querySelector(".form-content"),
             container: document.querySelector(".container"),
             formSections: Array.from(document.querySelectorAll(".form-section[data-step], #sectionStep3"))
@@ -1837,6 +2028,43 @@
             refs.tollFee.value = state.tollEstimated.toFixed(2);
         }
 
+        function clearMapMarkers() {
+            if (state.startMarker) {
+                state.startMarker.remove();
+                state.startMarker = null;
+            }
+            if (state.endMarker) {
+                state.endMarker.remove();
+                state.endMarker = null;
+            }
+            state.stopMarkers.forEach((m) => m.remove());
+            state.stopMarkers = [];
+        }
+
+        function clearRouteVisuals() {
+            if (!state.map) return;
+            if (state.map.getSource(CONFIG.routeSourceId)) {
+                state.map.getSource(CONFIG.routeSourceId).setData({
+                    type: "Feature",
+                    properties: {},
+                    geometry: { type: "LineString", coordinates: [] }
+                });
+            }
+            clearMapMarkers();
+        }
+
+        function resetRouteOutputs() {
+            state.route.distanceKm = 0;
+            state.route.durationSec = 0;
+            state.tollEstimated = 0;
+            syncTollEstimateToInput();
+            refs.distanceText.textContent = "0 km";
+            refs.durationText.textContent = "0 min";
+            refs.routeInfoSection.style.display = "none";
+            renderTripCost();
+            clearRouteVisuals();
+        }
+
         function setMapMarkers(startCoord, endCoord, stopCoords) {
             if (!state.map) return;
 
@@ -1905,12 +2133,7 @@
             const originText = refs.originInput.value.trim();
             const destText = refs.destinationInput.value.trim();
             if (!originText || !destText) {
-                state.route.distanceKm = 0;
-                state.route.durationSec = 0;
-                state.tollEstimated = 0;
-                syncTollEstimateToInput();
-                renderTripCost();
-                refs.routeInfoSection.style.display = "none";
+                resetRouteOutputs();
                 updateStopsHint("error", "Enter both pickup and destination to calculate route.");
                 updateStepProgress();
                 return;
@@ -1966,6 +2189,7 @@
                 updateStopsHint("idle", `Stops: ${state.stops.length}/${CONFIG.maxStops} • ${tollLabel}`);
             } catch (err) {
                 if (myReq !== state.requestId) return;
+                resetRouteOutputs();
                 updateStopsHint("error", err.message || "Unable to calculate route.");
                 updateStepProgress();
             } finally {
