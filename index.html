@@ -117,9 +117,61 @@
             margin-inline: auto;
         }
 
+        .step-indicators {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-sm);
+        }
+
+        .step-chip {
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            min-height: 56px;
+            display: grid;
+            align-content: center;
+            gap: 2px;
+            transition: var(--transition);
+        }
+
+        .step-chip .step-kicker {
+            font-size: 0.68rem;
+            color: var(--muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .step-chip .step-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .step-chip.active {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-focus);
+            background: #f8fffd;
+        }
+
+        .step-chip.completed {
+            border-color: var(--success-border);
+            background: var(--success-surface);
+        }
+
         .form-section {
             display: grid;
             gap: var(--spacing-md);
+            border: 1px solid transparent;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-sm);
+            transition: var(--transition);
+        }
+
+        .form-section.is-active {
+            border-color: var(--border-light);
+            background: #fbfcfe;
         }
 
         .form-section-title {
@@ -281,6 +333,18 @@
         .stops-container {
             display: grid;
             gap: var(--spacing-md);
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .stops-container::before {
+            content: "";
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-light);
         }
 
         .stop-item {
@@ -294,6 +358,73 @@
             border-radius: var(--radius-md);
             transition: var(--transition);
             animation: slideUp 0.2s ease-out;
+            position: relative;
+        }
+
+        .stop-item::before {
+            content: "";
+            position: absolute;
+            left: -18px;
+            top: 22px;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #6B7280;
+            border: 2px solid white;
+            box-shadow: 0 0 0 1px var(--border);
+        }
+
+        .stop-main {
+            display: grid;
+            gap: var(--spacing-sm);
+        }
+
+        .stop-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.76rem;
+            color: var(--muted);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .drag-handle {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .route-point {
+            display: grid;
+            grid-template-columns: 18px 1fr;
+            gap: var(--spacing-sm);
+            align-items: start;
+        }
+
+        .route-node {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            margin-top: 16px;
+        }
+
+        .route-node.start { background: var(--primary); }
+        .route-node.destination { background: var(--accent); }
+
+        .point-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            color: var(--muted);
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
         }
 
         .stop-item:hover {
@@ -493,6 +624,12 @@
             color: var(--primary-dark);
             margin: var(--spacing-md) 0 0;
             letter-spacing: -1px;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .cost-total-value.updating {
+            transform: scale(1.04);
+            color: var(--primary);
         }
 
         .cost-breakdown {
@@ -516,6 +653,29 @@
         .cost-item-label {
             color: var(--muted);
             font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: var(--secondary);
+            border: 1px solid var(--border-light);
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+
+        .estimate-note {
+            margin-top: var(--spacing-sm);
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
         }
 
         .cost-item-value {
@@ -614,6 +774,23 @@
             transform: none;
         }
 
+        .map-toggle {
+            margin-top: var(--spacing-sm);
+            border: 1px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.12);
+            color: white;
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            min-height: 36px;
+            display: none;
+        }
+
+        .map-toggle:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
         /* ===== MAP PANEL ===== */
         .map-panel {
             position: relative;
@@ -631,6 +808,7 @@
             .map-panel {
                 display: block;
                 height: 42vh;
+                transition: height 0.2s ease, opacity 0.2s ease;
             }
 
             .form-panel {
@@ -639,6 +817,24 @@
 
             .form-header {
                 padding: var(--spacing-lg);
+            }
+
+            .map-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .container.map-collapsed .map-panel {
+                height: 0;
+                opacity: 0;
+                overflow: hidden;
+            }
+
+            .cost-summary {
+                position: sticky;
+                bottom: 0;
+                z-index: 8;
             }
         }
 
@@ -708,6 +904,29 @@
             font-weight: 600;
         }
 
+        .hint.calculating {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .results-fade {
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .results-fade.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .form-content.is-calculating input,
+        .form-content.is-calculating select,
+        .form-content.is-calculating button {
+            pointer-events: none;
+            opacity: 0.75;
+        }
+
         /* ===== SCROLLBAR ===== */
         ::-webkit-scrollbar {
             width: 8px;
@@ -768,6 +987,10 @@
             .route-info {
                 grid-template-columns: 1fr;
             }
+
+            .step-indicators {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -778,22 +1001,46 @@
             <div class="form-header">
                 <h1>Trip Cost Calculator</h1>
                 <p>Philippines route estimator</p>
+                <button type="button" id="mapToggleBtn" class="map-toggle">Hide map</button>
             </div>
 
             <div class="form-content">
+                <div class="step-indicators" aria-label="Trip planning steps">
+                    <div class="step-chip active" id="stepChip1">
+                        <span class="step-kicker">Step 1</span>
+                        <span class="step-title">Enter locations</span>
+                    </div>
+                    <div class="step-chip" id="stepChip2">
+                        <span class="step-kicker">Step 2</span>
+                        <span class="step-title">Adjust trip options</span>
+                    </div>
+                    <div class="step-chip" id="stepChip3">
+                        <span class="step-kicker">Step 3</span>
+                        <span class="step-title">View cost</span>
+                    </div>
+                </div>
+
                 <!-- ROUTE SECTION -->
-                <div class="form-section">
+                <div class="form-section is-active" id="sectionStep1" data-step="1">
                     <h3 class="form-section-title">Route</h3>
                     
                     <div class="input-group">
-                        <label for="originInput">Start Point</label>
-                        <div class="input-wrap">
-                            <input 
-                                id="originInput" 
-                                type="text" 
-                                placeholder="e.g., Manila, Metro Manila"
-                                autocomplete="off">
-                            <div id="originSuggestions" class="suggestions" role="listbox"></div>
+                        <div class="route-point">
+                            <span class="route-node start" aria-hidden="true"></span>
+                            <div>
+                                <div class="point-meta">
+                                    <span>Start</span>
+                                    <span class="drag-handle" aria-hidden="true">|||</span>
+                                </div>
+                                <div class="input-wrap">
+                                    <input 
+                                        id="originInput" 
+                                        type="text" 
+                                        placeholder="e.g., Manila, Metro Manila"
+                                        autocomplete="off">
+                                    <div id="originSuggestions" class="suggestions" role="listbox"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -807,14 +1054,22 @@
                     </button>
 
                     <div class="input-group">
-                        <label for="destinationInput">Destination</label>
-                        <div class="input-wrap">
-                            <input 
-                                id="destinationInput" 
-                                type="text" 
-                                placeholder="e.g., Cebu City, Cebu"
-                                autocomplete="off">
-                            <div id="destinationSuggestions" class="suggestions" role="listbox"></div>
+                        <div class="route-point">
+                            <span class="route-node destination" aria-hidden="true"></span>
+                            <div>
+                                <div class="point-meta">
+                                    <span>Destination</span>
+                                    <span class="drag-handle" aria-hidden="true">|||</span>
+                                </div>
+                                <div class="input-wrap">
+                                    <input 
+                                        id="destinationInput" 
+                                        type="text" 
+                                        placeholder="e.g., Cebu City, Cebu"
+                                        autocomplete="off">
+                                    <div id="destinationSuggestions" class="suggestions" role="listbox"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -822,7 +1077,7 @@
                 </div>
 
                 <!-- ROUTE PREFERENCES SECTION -->
-                <div class="form-section">
+                <div class="form-section" id="sectionStep2a" data-step="2">
                     <h3 class="form-section-title">Preferences</h3>
 
                     <div class="input-group">
@@ -854,7 +1109,7 @@
                 </div>
 
                 <!-- VEHICLE & COSTS SECTION -->
-                <div class="form-section">
+                <div class="form-section" id="sectionStep2b" data-step="2">
                     <h3 class="form-section-title">Vehicle & Costs</h3>
 
                     <div class="input-group two-cols">
@@ -921,7 +1176,7 @@
 
                 <!-- ROUTE INFO SECTION -->
                 <div id="routeInfoSection" style="display: none;">
-                    <div class="route-info">
+                    <div class="route-info results-fade" id="routeInfoCard">
                         <div class="route-info-item">
                             <span class="route-info-label">Distance</span>
                             <span class="route-info-value" id="distanceText">0 km</span>
@@ -934,7 +1189,7 @@
                 </div>
 
                 <!-- COST SUMMARY SECTION -->
-                <div class="cost-summary">
+                <div class="cost-summary" id="sectionStep3" data-step="3">
                     <div class="cost-total">
                         <p class="cost-total-label">Total Trip Cost</p>
                         <div class="cost-total-value" id="totalCost">₱0.00</div>
@@ -944,11 +1199,15 @@
                         <summary>Cost Breakdown</summary>
                         <ul class="cost-breakdown">
                             <li class="cost-item">
-                                <span class="cost-item-label">Fuel</span>
+                                <span class="cost-item-label"><span class="metric-icon">D</span>Distance</span>
+                                <span class="cost-item-value" id="distanceCost">0.00 km</span>
+                            </li>
+                            <li class="cost-item">
+                                <span class="cost-item-label"><span class="metric-icon">F</span>Fuel</span>
                                 <span class="cost-item-value" id="fuelCost">₱0.00</span>
                             </li>
                             <li class="cost-item">
-                                <span class="cost-item-label">Toll</span>
+                                <span class="cost-item-label"><span class="metric-icon">T</span>Toll</span>
                                 <span class="cost-item-value" id="tollCost">₱0.00</span>
                             </li>
                             <li class="cost-item">
@@ -966,6 +1225,8 @@
                         <span class="per-person-label">Cost per Passenger</span>
                         <div class="per-person-value" id="perPersonCost">₱0.00</div>
                     </div>
+
+                    <p class="estimate-note">Estimate only. Final price may vary.</p>
                 </div>
 
                 <!-- BOOKING SECTION -->
@@ -1028,6 +1289,7 @@
             stopsList: document.getElementById("stopsList"),
             stopsHint: document.getElementById("stopsHint"),
             addStopBtn: document.getElementById("addStopBtn"),
+            mapToggleBtn: document.getElementById("mapToggleBtn"),
             withExpresswayBtn: document.getElementById("withExpresswayBtn"),
             avoidExpresswayBtn: document.getElementById("avoidExpresswayBtn"),
             expresswayhint: document.getElementById("expresswayhint"),
@@ -1041,7 +1303,9 @@
             driverFee: document.getElementById("driverFee"),
             passengers: document.getElementById("passengers"),
             routeInfoSection: document.getElementById("routeInfoSection"),
+            routeInfoCard: document.getElementById("routeInfoCard"),
             distanceText: document.getElementById("distanceText"),
+            distanceCost: document.getElementById("distanceCost"),
             durationText: document.getElementById("durationText"),
             totalCost: document.getElementById("totalCost"),
             fuelCost: document.getElementById("fuelCost"),
@@ -1049,7 +1313,13 @@
             rentalCost: document.getElementById("rentalCost"),
             driverCostItem: document.getElementById("driverCostItem"),
             driverCost: document.getElementById("driverCost"),
-            perPersonCost: document.getElementById("perPersonCost")
+            perPersonCost: document.getElementById("perPersonCost"),
+            stepChip1: document.getElementById("stepChip1"),
+            stepChip2: document.getElementById("stepChip2"),
+            stepChip3: document.getElementById("stepChip3"),
+            formContent: document.querySelector(".form-content"),
+            container: document.querySelector(".container"),
+            formSections: Array.from(document.querySelectorAll(".form-section[data-step], #sectionStep3"))
         };
 
         const state = {
@@ -1066,7 +1336,9 @@
             requestId: 0,
             autocompleteRequestId: {},
             tollEstimated: 0,
-            tollManual: false
+            tollManual: false,
+            isCalculating: false,
+            mobileMapCollapsed: false
         };
 
         function safeNumber(raw) {
@@ -1132,6 +1404,7 @@
             refs.addStopBtn.disabled = count >= CONFIG.maxStops;
 
             refs.stopsHint.classList.toggle("error", status === "error");
+            refs.stopsHint.classList.toggle("calculating", status === "loading");
             if (status === "loading") {
                 refs.stopsHint.textContent = "Calculating route...";
                 return;
@@ -1158,6 +1431,7 @@
             state.stops.push(createStop());
             renderStops();
             updateStopsHint();
+            updateStepProgress();
             scheduleRouteRefresh();
         }
 
@@ -1165,6 +1439,7 @@
             state.stops = state.stops.filter((s) => s.id !== id);
             renderStops();
             updateStopsHint();
+            updateStepProgress();
             scheduleRouteRefresh();
         }
 
@@ -1236,6 +1511,13 @@
                 const item = document.createElement("div");
                 item.className = "stop-item";
 
+                const stopMain = document.createElement("div");
+                stopMain.className = "stop-main";
+
+                const stopHead = document.createElement("div");
+                stopHead.className = "stop-head";
+                stopHead.innerHTML = `<span>Stop ${index + 1}</span><span class="drag-handle" aria-hidden="true">|||</span>`;
+
                 const wrap = document.createElement("div");
                 wrap.className = "input-wrap";
 
@@ -1249,8 +1531,10 @@
                 suggestions.className = "suggestions";
                 suggestions.setAttribute("role", "listbox");
 
+                stopMain.appendChild(stopHead);
                 wrap.appendChild(input);
                 wrap.appendChild(suggestions);
+                stopMain.appendChild(wrap);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -1258,7 +1542,7 @@
                 removeBtn.textContent = "Remove";
                 removeBtn.addEventListener("click", () => removeStop(stop.id));
 
-                item.appendChild(wrap);
+                item.appendChild(stopMain);
                 item.appendChild(removeBtn);
                 refs.stopsList.appendChild(item);
 
@@ -1288,13 +1572,84 @@
             const fuel = (distanceKm / efficiency) * fuelPrice;
             const total = fuel + rental + toll + driver;
             const perPerson = total / passengers;
+            const totalDisplay = formatCurrency(total);
 
             refs.fuelCost.textContent = formatCurrency(fuel);
             refs.tollCost.textContent = formatCurrency(toll);
             refs.rentalCost.textContent = formatCurrency(rental);
             refs.driverCost.textContent = formatCurrency(driver);
-            refs.totalCost.textContent = formatCurrency(total);
+            refs.distanceCost.textContent = `${distanceKm.toFixed(2)} km`;
+
+            if (refs.totalCost.textContent !== totalDisplay) {
+                refs.totalCost.classList.remove("updating");
+                void refs.totalCost.offsetWidth;
+                refs.totalCost.classList.add("updating");
+            }
+
+            refs.totalCost.textContent = totalDisplay;
             refs.perPersonCost.textContent = formatCurrency(perPerson);
+        }
+
+        function setCalculating(isCalculating) {
+            state.isCalculating = isCalculating;
+            refs.formContent.classList.toggle("is-calculating", isCalculating);
+
+            const controls = refs.formContent.querySelectorAll("input, select, button");
+            controls.forEach((control) => {
+                if (control.id === "mapToggleBtn") return;
+
+                if (isCalculating) {
+                    control.dataset.wasDisabled = control.disabled ? "1" : "0";
+                    control.disabled = true;
+                } else if (control.dataset.wasDisabled === "0") {
+                    control.disabled = false;
+                }
+            });
+
+            refs.addStopBtn.disabled = isCalculating || state.stops.length >= CONFIG.maxStops;
+        }
+
+        function setActiveStep(stepNumber) {
+            [refs.stepChip1, refs.stepChip2, refs.stepChip3].forEach((chip, index) => {
+                if (!chip) return;
+                const step = index + 1;
+                chip.classList.toggle("active", step === stepNumber);
+                chip.classList.toggle("completed", step < stepNumber);
+            });
+
+            refs.formSections.forEach((section) => {
+                const sectionStep = Number(section.dataset.step || 3);
+                section.classList.toggle("is-active", sectionStep === stepNumber);
+            });
+        }
+
+        function updateStepProgress() {
+            const hasLocations = Boolean(refs.originInput.value.trim() && refs.destinationInput.value.trim());
+            const hasRoute = state.route.distanceKm > 0;
+
+            if (!hasLocations) {
+                setActiveStep(1);
+                return;
+            }
+
+            if (!hasRoute) {
+                setActiveStep(2);
+                return;
+            }
+
+            setActiveStep(3);
+        }
+
+        function toggleMobileMap() {
+            if (!window.matchMedia("(max-width: 759px)").matches) return;
+
+            state.mobileMapCollapsed = !state.mobileMapCollapsed;
+            refs.container.classList.toggle("map-collapsed", state.mobileMapCollapsed);
+            refs.mapToggleBtn.textContent = state.mobileMapCollapsed ? "Show map" : "Hide map";
+
+            if (!state.mobileMapCollapsed && state.map) {
+                setTimeout(() => state.map.resize(), 210);
+            }
         }
 
         function syncTollEstimateToInput() {
@@ -1319,7 +1674,7 @@
 
             state.stopMarkers.forEach((m) => m.remove());
             state.stopMarkers = stopCoords.map((coord, idx) => (
-                new mapboxgl.Marker({ color: "#F59E0B" })
+                new mapboxgl.Marker({ color: "#6B7280" })
                     .setLngLat(coord)
                     .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`Stop ${idx + 1}`))
                     .addTo(state.map)
@@ -1377,11 +1732,13 @@
                 renderTripCost();
                 refs.routeInfoSection.style.display = "none";
                 updateStopsHint("error", "Enter both pickup and destination to calculate route.");
+                updateStepProgress();
                 return;
             }
 
             const myReq = ++state.requestId;
             updateStopsHint("loading");
+            setCalculating(true);
 
             try {
                 const startCoord = await resolveCoord(originText, state.origin.coord);
@@ -1411,8 +1768,11 @@
                 refs.distanceText.textContent = `${state.route.distanceKm.toFixed(2)} km`;
                 refs.durationText.textContent = formatDuration(state.route.durationSec);
                 refs.routeInfoSection.style.display = "block";
+                refs.routeInfoCard.classList.remove("visible");
+                requestAnimationFrame(() => refs.routeInfoCard.classList.add("visible"));
 
                 renderTripCost();
+                updateStepProgress();
 
                 if (state.map) {
                     const render = () => renderRouteOnMap(route.geometry, startCoord, endCoord, stopCoords);
@@ -1427,6 +1787,9 @@
             } catch (err) {
                 if (myReq !== state.requestId) return;
                 updateStopsHint("error", err.message || "Unable to calculate route.");
+                updateStepProgress();
+            } finally {
+                setCalculating(false);
             }
         }
 
@@ -1440,6 +1803,7 @@
             refs.expresswayhint.textContent = withExpressway
                 ? "With expressway: generally faster, tolls estimated automatically"
                 : "Avoid expressway: generally cheaper, toll estimate becomes 0";
+            updateStepProgress();
             scheduleRouteRefresh();
         }
 
@@ -1450,18 +1814,28 @@
             refs.driverFeeWrap.style.display = withDriver ? "block" : "none";
             refs.driverCostItem.style.display = withDriver ? "flex" : "none";
             renderTripCost();
+            updateStepProgress();
         }
 
         function bindEvents() {
             refs.addStopBtn.addEventListener("click", addStop);
+            refs.mapToggleBtn.addEventListener("click", toggleMobileMap);
             refs.withExpresswayBtn.addEventListener("click", () => setRoutePreference(true));
             refs.avoidExpresswayBtn.addEventListener("click", () => setRoutePreference(false));
             refs.selfDriveBtn.addEventListener("click", () => setTripMode(false));
             refs.withDriverBtn.addEventListener("click", () => setTripMode(true));
 
+            refs.formSections.forEach((section) => {
+                section.addEventListener("focusin", () => {
+                    const step = Number(section.dataset.step || 3);
+                    setActiveStep(step);
+                });
+            });
+
             function bindRouteField(inputEl, assignState) {
                 const sync = () => {
                     assignState();
+                    updateStepProgress();
                     scheduleRouteRefresh();
                 };
                 inputEl.addEventListener("input", sync);
@@ -1477,6 +1851,7 @@
 
             attachAutocomplete(refs.originInput, refs.originSuggestions, "origin", (place) => {
                 state.origin = { text: place.place_name, coord: place.center };
+                updateStepProgress();
                 scheduleRouteRefresh();
             });
 
@@ -1486,6 +1861,7 @@
 
             attachAutocomplete(refs.destinationInput, refs.destinationSuggestions, "destination", (place) => {
                 state.destination = { text: place.place_name, coord: place.center };
+                updateStepProgress();
                 scheduleRouteRefresh();
             });
 
@@ -1499,6 +1875,7 @@
             });
 
             refs.vehicleType.addEventListener("change", () => {
+                updateStepProgress();
                 scheduleRouteRefresh();
             });
 
@@ -1512,12 +1889,22 @@
                 }
                 renderTripCost();
                 updateStopsHint();
+                updateStepProgress();
             });
 
             refs.tollFee.addEventListener("change", () => {
                 const numeric = safeNumber(refs.tollFee.value);
                 refs.tollFee.value = numeric.toFixed(2);
                 renderTripCost();
+                updateStepProgress();
+            });
+
+            window.addEventListener("resize", () => {
+                if (!window.matchMedia("(max-width: 759px)").matches) {
+                    state.mobileMapCollapsed = false;
+                    refs.container.classList.remove("map-collapsed");
+                    refs.mapToggleBtn.textContent = "Hide map";
+                }
             });
         }
 
@@ -1545,6 +1932,7 @@
             updateStopsHint();
             renderTripCost();
             bindEvents();
+            updateStepProgress();
 
             // Booking is intentionally disabled in logic-only mode.
             const bookBtn = document.getElementById("bookNowBtn");
