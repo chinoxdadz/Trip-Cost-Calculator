@@ -612,6 +612,10 @@
             CONFIG.tokenPlaceholder;
         mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
+        function hasValidPublicMapboxToken(token) {
+            return typeof token === "string" && token.startsWith("pk.") && token.length > 24;
+        }
+
         const refs = {
             sheet: document.getElementById("sheet"),
             sheetHandle: document.getElementById("sheetHandle"),
@@ -991,7 +995,7 @@
         }
 
         async function recalculateRoute() {
-            if (MAPBOX_ACCESS_TOKEN === CONFIG.tokenPlaceholder || !MAPBOX_ACCESS_TOKEN) {
+            if (!hasValidPublicMapboxToken(MAPBOX_ACCESS_TOKEN)) {
                 setRouteStatus("Set your Mapbox public token to enable routing.", true);
                 return;
             }
@@ -1169,7 +1173,7 @@
         }
 
         function initializeMap() {
-            if (MAPBOX_ACCESS_TOKEN === CONFIG.tokenPlaceholder || !MAPBOX_ACCESS_TOKEN) {
+            if (!hasValidPublicMapboxToken(MAPBOX_ACCESS_TOKEN)) {
                 setRouteStatus("Set your Mapbox public token to enable live routing.", true);
                 return;
             }
