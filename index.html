@@ -52,12 +52,14 @@
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            min-height: 100dvh;
         }
 
         .container {
             display: grid;
             grid-template-columns: 1fr;
-            height: 100vh;
+            height: 100dvh;
+            min-height: 100dvh;
             overflow: hidden;
         }
 
@@ -80,7 +82,6 @@
 
         @media (max-width: 759px) {
             .form-panel {
-                max-height: 60vh;
                 border-right: none;
                 border-bottom: 1px solid var(--border);
                 box-shadow: inset 0 -1px 0 var(--border-light);
@@ -823,18 +824,36 @@
         }
 
         @media (max-width: 759px) {
+            .container {
+                display: flex;
+                flex-direction: column;
+                height: 100dvh;
+                min-height: 100dvh;
+                overflow: hidden;
+            }
+
             .map-panel {
                 display: block;
-                height: 42vh;
+                flex: 0 0 38dvh;
+                height: 38dvh;
+                min-height: 220px;
                 transition: height 0.2s ease, opacity 0.2s ease;
             }
 
             .form-panel {
-                max-height: 58vh;
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .form-header {
                 padding: var(--spacing-lg);
+            }
+
+            .form-content {
+                padding-bottom: calc(var(--spacing-xl) + env(safe-area-inset-bottom));
             }
 
             .map-toggle {
@@ -844,7 +863,9 @@
             }
 
             .container.map-collapsed .map-panel {
+                flex-basis: 0;
                 height: 0;
+                min-height: 0;
                 opacity: 0;
                 overflow: hidden;
             }
@@ -853,6 +874,26 @@
                 position: sticky;
                 bottom: 0;
                 z-index: 8;
+            }
+
+            .step-indicators {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .step-chip:nth-child(3) {
+                grid-column: 1 / -1;
+            }
+
+            .stop-item {
+                grid-template-columns: 1fr;
+            }
+
+            .stop-remove {
+                width: 100%;
+            }
+
+            .route-info {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -1337,6 +1378,8 @@
             stepChip1: document.getElementById("stepChip1"),
             stepChip2: document.getElementById("stepChip2"),
             stepChip3: document.getElementById("stepChip3"),
+            sectionStep2a: document.getElementById("sectionStep2a"),
+            sectionStep2b: document.getElementById("sectionStep2b"),
             formContent: document.querySelector(".form-content"),
             container: document.querySelector(".container"),
             formSections: Array.from(document.querySelectorAll(".form-section[data-step], #sectionStep3"))
@@ -1712,10 +1755,22 @@
         }
 
         function updateStepProgress() {
-            const hasLocations = Boolean(refs.originInput.value.trim() && refs.destinationInput.value.trim());
+            const hasLocationText = Boolean(refs.originInput.value.trim() && refs.destinationInput.value.trim());
+            const hasResolvedLocations = Boolean(state.origin.coord && state.destination.coord);
             const hasRoute = state.route.distanceKm > 0;
 
-            if (!hasLocations) {
+            const showStep2 = hasResolvedLocations;
+            const showStep3 = showStep2 && hasRoute;
+
+            refs.sectionStep2a.hidden = !showStep2;
+            refs.sectionStep2b.hidden = !showStep2;
+            refs.sectionStep3.hidden = !showStep3;
+
+            refs.sectionStep2a.setAttribute("aria-hidden", String(!showStep2));
+            refs.sectionStep2b.setAttribute("aria-hidden", String(!showStep2));
+            refs.sectionStep3.setAttribute("aria-hidden", String(!showStep3));
+
+            if (!hasLocationText || !hasResolvedLocations) {
                 setActiveStep(1);
                 return;
             }
@@ -1921,13 +1976,21 @@
                 });
             });
 
-            function bindRouteField(inputEl, assignState) {
+            function bindRouteField(inputEl, assignState, options = {}) {
+                const { triggerOnInput = true } = options;
                 const sync = () => {
                     assignState();
                     updateStepProgress();
                     scheduleRouteRefresh();
                 };
-                inputEl.addEventListener("input", sync);
+                if (triggerOnInput) {
+                    inputEl.addEventListener("input", sync);
+                } else {
+                    inputEl.addEventListener("input", () => {
+                        assignState();
+                        updateStepProgress();
+                    });
+                }
                 inputEl.addEventListener("change", sync);
                 inputEl.addEventListener("blur", sync);
                 inputEl.addEventListener("keydown", (event) => {
@@ -1956,7 +2019,7 @@
 
             bindRouteField(refs.destinationInput, () => {
                 state.destination = { text: refs.destinationInput.value, coord: null };
-            });
+            }, { triggerOnInput: false });
 
             [refs.fuelPrice, refs.vehicleType, refs.rentalFee, refs.driverFee, refs.passengers].forEach((el) => {
                 el.addEventListener("input", renderTripCost);
