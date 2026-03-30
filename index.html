@@ -495,6 +495,24 @@
             cursor: not-allowed;
         }
 
+        .geo-btn {
+            margin-top: var(--spacing-sm);
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--primary);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            min-height: 36px;
+            transition: var(--transition);
+        }
+
+        .geo-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background: #f8fffd;
+        }
+
         /* ===== SEGMENTED CONTROLS ===== */
         .segmented {
             display: grid;
@@ -1040,6 +1058,7 @@
                                         autocomplete="off">
                                     <div id="originSuggestions" class="suggestions" role="listbox"></div>
                                 </div>
+                                <button type="button" id="useCurrentLocationBtn" class="geo-btn">Use my current location</button>
                             </div>
                         </div>
                     </div>
@@ -1283,6 +1302,7 @@
 
         const refs = {
             originInput: document.getElementById("originInput"),
+            useCurrentLocationBtn: document.getElementById("useCurrentLocationBtn"),
             destinationInput: document.getElementById("destinationInput"),
             originSuggestions: document.getElementById("originSuggestions"),
             destinationSuggestions: document.getElementById("destinationSuggestions"),
@@ -1371,6 +1391,10 @@
             return `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?autocomplete=true&country=ph&limit=${limit}&access_token=${mapboxgl.accessToken}`;
         }
 
+        function buildReverseGeocodeUrl(coord) {
+            return `https://api.mapbox.com/geocoding/v5/mapbox.places/${coord[0]},${coord[1]}.json?country=ph&limit=1&access_token=${mapboxgl.accessToken}`;
+        }
+
         function buildDirectionsUrl(coords) {
             const joined = coords.map((c) => `${c[0]},${c[1]}`).join(";");
             const exclude = state.withExpressway ? "" : "&exclude=toll";
@@ -1381,6 +1405,69 @@
             const res = await fetch(url);
             if (!res.ok) throw new Error("Network request failed.");
             return res.json();
+        }
+
+        function getCurrentPositionAsync(options) {
+            return new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, options);
+            });
+        }
+
+        async function handleUseCurrentLocation() {
+            if (!navigator.geolocation) {
+                updateStopsHint("error", "Geolocation is not supported by this browser.");
+                return;
+            }
+
+            const originalText = refs.useCurrentLocationBtn.textContent;
+            refs.useCurrentLocationBtn.disabled = true;
+            refs.useCurrentLocationBtn.textContent = "Locating...";
+
+            try {
+                const position = await getCurrentPositionAsync({
+                    enableHighAccuracy: true,
+                    timeout: 12000,
+                    maximumAge: 0
+                });
+
+                const coord = [position.coords.longitude, position.coords.latitude];
+                let label = `Current location (${coord[1].toFixed(5)}, ${coord[0].toFixed(5)})`;
+
+                if (hasValidPublicMapboxToken(MAPBOX_ACCESS_TOKEN)) {
+                    try {
+                        const reverseData = await fetchJson(buildReverseGeocodeUrl(coord));
+                        const first = reverseData.features?.[0];
+                        if (first?.place_name) {
+                            label = first.place_name;
+                        }
+                    } catch (_ignore) {
+                        // Keep coordinate fallback label.
+                    }
+                }
+
+                refs.originInput.value = label;
+                state.origin = { text: label, coord };
+                updateStepProgress();
+                updateStopsHint("idle", "Current location set as start point.");
+
+                if (state.map) {
+                    state.map.flyTo({ center: coord, zoom: Math.max(state.map.getZoom(), 11), duration: 500 });
+                }
+
+                scheduleRouteRefresh();
+            } catch (error) {
+                const message = error?.code === 1
+                    ? "Location access denied. Please allow location permissions."
+                    : error?.code === 2
+                        ? "Unable to detect your current location."
+                        : error?.code === 3
+                            ? "Location request timed out. Please try again."
+                            : "Unable to get current location.";
+                updateStopsHint("error", message);
+            } finally {
+                refs.useCurrentLocationBtn.textContent = originalText;
+                refs.useCurrentLocationBtn.disabled = state.isCalculating;
+            }
         }
 
         function createStop() {
@@ -1607,6 +1694,7 @@
             });
 
             refs.addStopBtn.disabled = isCalculating || state.stops.length >= CONFIG.maxStops;
+            refs.useCurrentLocationBtn.disabled = isCalculating;
         }
 
         function setActiveStep(stepNumber) {
@@ -1819,6 +1907,7 @@
 
         function bindEvents() {
             refs.addStopBtn.addEventListener("click", addStop);
+            refs.useCurrentLocationBtn.addEventListener("click", handleUseCurrentLocation);
             refs.mapToggleBtn.addEventListener("click", toggleMobileMap);
             refs.withExpresswayBtn.addEventListener("click", () => setRoutePreference(true));
             refs.avoidExpresswayBtn.addEventListener("click", () => setRoutePreference(false));
