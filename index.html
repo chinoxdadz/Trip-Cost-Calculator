@@ -75,6 +75,7 @@
             background: var(--surface);
             border-right: 1px solid var(--border);
             box-shadow: inset -1px 0 0 var(--border-light);
+            scroll-padding-bottom: var(--spacing-xl);
         }
 
         @media (max-width: 759px) {
@@ -112,6 +113,8 @@
             padding: var(--spacing-lg);
             display: grid;
             gap: var(--spacing-lg);
+            width: min(100%, 680px);
+            margin-inline: auto;
         }
 
         .form-section {
@@ -150,6 +153,12 @@
         .input-group.two-cols {
             grid-template-columns: 1fr 1fr;
             gap: var(--spacing-md);
+        }
+
+        @media (max-width: 900px) {
+            .input-group.two-cols {
+                grid-template-columns: 1fr;
+            }
         }
 
         label {
@@ -459,6 +468,7 @@
             border-radius: var(--radius-lg);
             padding: var(--spacing-lg);
             box-shadow: 0 4px 12px rgba(12, 122, 105, 0.08);
+            margin-top: var(--spacing-sm);
         }
 
         .cost-total {
@@ -620,7 +630,15 @@
         @media (max-width: 759px) {
             .map-panel {
                 display: block;
-                height: 40vh;
+                height: 42vh;
+            }
+
+            .form-panel {
+                max-height: 58vh;
+            }
+
+            .form-header {
+                padding: var(--spacing-lg);
             }
         }
 
@@ -737,6 +755,18 @@
 
             .btn-primary {
                 min-height: 44px;
+            }
+
+            .stop-item {
+                grid-template-columns: 1fr;
+            }
+
+            .stop-remove {
+                width: 100%;
+            }
+
+            .route-info {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -959,7 +989,6 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <script type="module">
         const CONFIG = {
-            tokenPlaceholder: "YOUR_MAPBOX_ACCESS_TOKEN_HERE",
             mapStyle: "mapbox://styles/mapbox/streets-v12",
             defaultCenter: [121.03, 14.6],
             defaultZoom: 6,
@@ -970,19 +999,6 @@
             tollRates: {
                 class1: { baseFee: 50, perKm: 4.5 },
                 class2: { baseFee: 80, perKm: 6.5 }
-            },
-            booking: {
-                formUrl: "https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform",
-                mapping: {
-                    origin: "",
-                    destination: "",
-                    stops: "",
-                    vehicleType: "",
-                    distance: "",
-                    total: "",
-                    perPerson: "",
-                    tripMode: ""
-                }
             }
         };
 
@@ -997,8 +1013,7 @@
         const MAPBOX_ACCESS_TOKEN =
             import.meta.env?.VITE_MAPBOX_PUBLIC_TOKEN ||
             window.VITE_MAPBOX_PUBLIC_TOKEN ||
-            DEFAULT_MAPBOX_PUBLIC_TOKEN ||
-            CONFIG.tokenPlaceholder;
+            DEFAULT_MAPBOX_PUBLIC_TOKEN;
         mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
         function hasValidPublicMapboxToken(token) {
@@ -1034,9 +1049,7 @@
             rentalCost: document.getElementById("rentalCost"),
             driverCostItem: document.getElementById("driverCostItem"),
             driverCost: document.getElementById("driverCost"),
-            perPersonCost: document.getElementById("perPersonCost"),
-            bookNowBtn: document.getElementById("bookNowBtn"),
-            bookingStatus: document.getElementById("bookingStatus")
+            perPersonCost: document.getElementById("perPersonCost")
         };
 
         const state = {
@@ -1051,7 +1064,9 @@
             endMarker: null,
             map: null,
             requestId: 0,
-            autocompleteRequestId: {}
+            autocompleteRequestId: {},
+            tollEstimated: 0,
+            tollManual: false
         };
 
         function safeNumber(raw) {
@@ -1100,16 +1115,44 @@
             return { id: `${Date.now()}-${Math.floor(Math.random() * 9999)}`, text: "", coord: null };
         }
 
-        function updateStopsHint() {
+        function getVehicleTollClass() {
+            const efficiency = safeNumber(refs.vehicleType.value);
+            return efficiency <= 8 ? "class2" : "class1";
+        }
+
+        function estimateToll(distanceKm) {
+            if (!state.withExpressway || distanceKm <= 0) return 0;
+            const tollClass = getVehicleTollClass();
+            const rate = CONFIG.tollRates[tollClass] || CONFIG.tollRates.class1;
+            return Math.max(0, rate.baseFee + (distanceKm * rate.perKm));
+        }
+
+        function updateStopsHint(status = "idle", text = "") {
             const count = state.stops.length;
-            refs.stopsHint.textContent = `Stops: ${count}/${CONFIG.maxStops}`;
             refs.addStopBtn.disabled = count >= CONFIG.maxStops;
+
+            refs.stopsHint.classList.toggle("error", status === "error");
+            if (status === "loading") {
+                refs.stopsHint.textContent = "Calculating route...";
+                return;
+            }
+            if (status === "error" && text) {
+                refs.stopsHint.textContent = text;
+                return;
+            }
+
+            if (text) {
+                refs.stopsHint.textContent = text;
+            } else {
+                refs.stopsHint.textContent = state.tollManual
+                    ? `Stops: ${count}/${CONFIG.maxStops} • Toll manually overridden`
+                    : `Stops: ${count}/${CONFIG.maxStops} • Toll estimated automatically`;
+            }
         }
 
         function addStop() {
             if (state.stops.length >= CONFIG.maxStops) {
-                refs.stopsHint.classList.add("error");
-                refs.stopsHint.textContent = `Maximum of ${CONFIG.maxStops} stops reached.`;
+                updateStopsHint("error", `Maximum of ${CONFIG.maxStops} stops reached.`);
                 return;
             }
             state.stops.push(createStop());
@@ -1219,16 +1262,11 @@
                 item.appendChild(removeBtn);
                 refs.stopsList.appendChild(item);
 
-                attachAutocomplete(
-                    input,
-                    suggestions,
-                    `stop-${stop.id}`,
-                    (place) => {
-                        stop.text = place.place_name;
-                        stop.coord = place.center;
-                        scheduleRouteRefresh();
-                    }
-                );
+                attachAutocomplete(input, suggestions, `stop-${stop.id}`, (place) => {
+                    stop.text = place.place_name;
+                    stop.coord = place.center;
+                    scheduleRouteRefresh();
+                });
 
                 input.addEventListener("input", () => {
                     stop.text = input.value;
@@ -1257,6 +1295,11 @@
             refs.driverCost.textContent = formatCurrency(driver);
             refs.totalCost.textContent = formatCurrency(total);
             refs.perPersonCost.textContent = formatCurrency(perPerson);
+        }
+
+        function syncTollEstimateToInput() {
+            if (state.tollManual) return;
+            refs.tollFee.value = state.tollEstimated.toFixed(2);
         }
 
         function setMapMarkers(startCoord, endCoord, stopCoords) {
@@ -1320,20 +1363,25 @@
 
         async function recalculateRoute() {
             if (!hasValidPublicMapboxToken(MAPBOX_ACCESS_TOKEN)) {
-                refs.stopsHint.textContent = "Configure your Mapbox token to enable routing.";
-                refs.stopsHint.classList.add("error");
+                updateStopsHint("error", "Configure a valid public Mapbox token to enable routing.");
                 return;
             }
 
             const originText = refs.originInput.value.trim();
             const destText = refs.destinationInput.value.trim();
             if (!originText || !destText) {
-                refs.stopsHint.textContent = "Enter both start and destination.";
-                refs.stopsHint.classList.add("error");
+                state.route.distanceKm = 0;
+                state.route.durationSec = 0;
+                state.tollEstimated = 0;
+                syncTollEstimateToInput();
+                renderTripCost();
+                refs.routeInfoSection.style.display = "none";
+                updateStopsHint("error", "Enter both pickup and destination to calculate route.");
                 return;
             }
 
             const myReq = ++state.requestId;
+            updateStopsHint("loading");
 
             try {
                 const startCoord = await resolveCoord(originText, state.origin.coord);
@@ -1349,13 +1397,16 @@
 
                 const data = await fetchJson(buildDirectionsUrl([startCoord, ...stopCoords, endCoord]));
                 if (myReq !== state.requestId) return;
-                if (!data.routes || !data.routes.length) throw new Error("No route found.");
+                if (!data.routes || !data.routes.length) throw new Error("No route found for the selected points.");
 
                 const route = data.routes[0];
                 state.origin.coord = startCoord;
                 state.destination.coord = endCoord;
-                state.route.distanceKm = Number(route.distance || 0) / 1000;
+                state.route.distanceKm = Number((Number(route.distance || 0) / 1000).toFixed(2));
                 state.route.durationSec = Number(route.duration || 0);
+                state.tollEstimated = estimateToll(state.route.distanceKm);
+
+                syncTollEstimateToInput();
 
                 refs.distanceText.textContent = `${state.route.distanceKm.toFixed(2)} km`;
                 refs.durationText.textContent = formatDuration(state.route.durationSec);
@@ -1369,16 +1420,17 @@
                     else state.map.once("load", render);
                 }
 
-                refs.stopsHint.classList.remove("error");
-                refs.stopsHint.textContent = `Stops: ${state.stops.length}/${CONFIG.maxStops}`;
+                const tollLabel = state.tollManual
+                    ? `Estimated toll: ${formatCurrency(state.tollEstimated)} (manual override active)`
+                    : `Estimated toll: ${formatCurrency(state.tollEstimated)}`;
+                updateStopsHint("idle", `Stops: ${state.stops.length}/${CONFIG.maxStops} • ${tollLabel}`);
             } catch (err) {
                 if (myReq !== state.requestId) return;
-                refs.stopsHint.classList.add("error");
-                refs.stopsHint.textContent = err.message || "Unable to calculate route.";
+                updateStopsHint("error", err.message || "Unable to calculate route.");
             }
         }
 
-        const scheduleRouteRefresh = debounce(recalculateRoute, 500);
+        const scheduleRouteRefresh = debounce(recalculateRoute, 450);
 
         function setRoutePreference(withExpressway) {
             if (state.withExpressway === withExpressway) return;
@@ -1386,8 +1438,8 @@
             refs.withExpresswayBtn.classList.toggle("active", withExpressway);
             refs.avoidExpresswayBtn.classList.toggle("active", !withExpressway);
             refs.expresswayhint.textContent = withExpressway
-                ? "Expressway routes likely include tolls"
-                : "Route avoids expressways where possible";
+                ? "With expressway: generally faster, tolls estimated automatically"
+                : "Avoid expressway: generally cheaper, toll estimate becomes 0";
             scheduleRouteRefresh();
         }
 
@@ -1400,89 +1452,78 @@
             renderTripCost();
         }
 
-        function buildBookingPayload() {
-            return {
-                origin: refs.originInput.value.trim(),
-                destination: refs.destinationInput.value.trim(),
-                stops: state.stops.map((s) => s.text.trim()).filter(Boolean).join(" → "),
-                vehicleType: refs.vehicleType.options[refs.vehicleType.selectedIndex]?.text || "",
-                distance: state.route.distanceKm.toFixed(2),
-                total: refs.totalCost.textContent,
-                perPerson: refs.perPersonCost.textContent,
-                tripMode: state.withDriver ? "With Driver" : "Self-drive"
-            };
-        }
-
-        function handleBooking() {
-            const formUrl = CONFIG.booking.formUrl;
-            if (!formUrl || formUrl.includes("YOUR_FORM_ID")) {
-                refs.bookingStatus.textContent = "Configure booking form URL and field mappings.";
-                refs.bookingStatus.classList.add("error");
-                return;
-            }
-
-            const payload = buildBookingPayload();
-            const params = new URLSearchParams();
-
-            Object.entries(CONFIG.booking.mapping).forEach(([key, entry]) => {
-                if (entry && payload[key]) {
-                    params.set(entry, payload[key]);
-                }
-            });
-
-            const url = `${formUrl.replace(/viewform(\?.*)?$/i, "viewform")}?${params.toString()}`;
-            window.open(url, "_blank", "noopener");
-
-            refs.bookingStatus.classList.remove("error");
-            refs.bookingStatus.textContent = "Booking form opened in new tab.";
-        }
-
         function bindEvents() {
             refs.addStopBtn.addEventListener("click", addStop);
             refs.withExpresswayBtn.addEventListener("click", () => setRoutePreference(true));
             refs.avoidExpresswayBtn.addEventListener("click", () => setRoutePreference(false));
             refs.selfDriveBtn.addEventListener("click", () => setTripMode(false));
             refs.withDriverBtn.addEventListener("click", () => setTripMode(true));
-            refs.bookNowBtn.addEventListener("click", handleBooking);
 
-            attachAutocomplete(
-                refs.originInput,
-                refs.originSuggestions,
-                "origin",
-                (place) => {
-                    state.origin = { text: place.place_name, coord: place.center };
+            function bindRouteField(inputEl, assignState) {
+                const sync = () => {
+                    assignState();
                     scheduleRouteRefresh();
-                }
-            );
+                };
+                inputEl.addEventListener("input", sync);
+                inputEl.addEventListener("change", sync);
+                inputEl.addEventListener("blur", sync);
+                inputEl.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        sync();
+                    }
+                });
+            }
 
-            refs.originInput.addEventListener("input", () => {
+            attachAutocomplete(refs.originInput, refs.originSuggestions, "origin", (place) => {
+                state.origin = { text: place.place_name, coord: place.center };
+                scheduleRouteRefresh();
+            });
+
+            bindRouteField(refs.originInput, () => {
                 state.origin = { text: refs.originInput.value, coord: null };
+            });
+
+            attachAutocomplete(refs.destinationInput, refs.destinationSuggestions, "destination", (place) => {
+                state.destination = { text: place.place_name, coord: place.center };
                 scheduleRouteRefresh();
             });
 
-            attachAutocomplete(
-                refs.destinationInput,
-                refs.destinationSuggestions,
-                "destination",
-                (place) => {
-                    state.destination = { text: place.place_name, coord: place.center };
-                    scheduleRouteRefresh();
-                }
-            );
-
-            refs.destinationInput.addEventListener("input", () => {
+            bindRouteField(refs.destinationInput, () => {
                 state.destination = { text: refs.destinationInput.value, coord: null };
-                scheduleRouteRefresh();
             });
 
-            [refs.fuelPrice, refs.vehicleType, refs.rentalFee, refs.driverFee, refs.passengers, refs.tollFee].forEach((el) => {
+            [refs.fuelPrice, refs.vehicleType, refs.rentalFee, refs.driverFee, refs.passengers].forEach((el) => {
                 el.addEventListener("input", renderTripCost);
                 el.addEventListener("change", renderTripCost);
+            });
+
+            refs.vehicleType.addEventListener("change", () => {
+                scheduleRouteRefresh();
+            });
+
+            refs.tollFee.addEventListener("input", () => {
+                const raw = refs.tollFee.value.trim();
+                if (!raw) {
+                    state.tollManual = false;
+                    syncTollEstimateToInput();
+                } else {
+                    state.tollManual = true;
+                }
+                renderTripCost();
+                updateStopsHint();
+            });
+
+            refs.tollFee.addEventListener("change", () => {
+                const numeric = safeNumber(refs.tollFee.value);
+                refs.tollFee.value = numeric.toFixed(2);
+                renderTripCost();
             });
         }
 
         function initializeMap() {
             if (!hasValidPublicMapboxToken(MAPBOX_ACCESS_TOKEN)) {
+                updateStopsHint("error", "Map disabled: missing valid public Mapbox token.");
                 console.warn("Mapbox token not configured. Map routing disabled.");
                 return;
             }
@@ -1493,6 +1534,9 @@
                 center: CONFIG.defaultCenter,
                 zoom: CONFIG.defaultZoom
             });
+
+            state.map.addControl(new mapboxgl.NavigationControl(), "top-right");
+            state.map.on("load", () => state.map.resize());
         }
 
         function init() {
@@ -1501,6 +1545,17 @@
             updateStopsHint();
             renderTripCost();
             bindEvents();
+
+            // Booking is intentionally disabled in logic-only mode.
+            const bookBtn = document.getElementById("bookNowBtn");
+            const bookingStatus = document.getElementById("bookingStatus");
+            if (bookBtn) {
+                bookBtn.disabled = true;
+                bookBtn.title = "Booking disabled";
+            }
+            if (bookingStatus) {
+                bookingStatus.textContent = "Booking is disabled in this build.";
+            }
         }
 
         init();
