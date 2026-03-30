@@ -1316,7 +1316,7 @@
                 flex: none;
                 min-height: 0;
                 overflow: visible;
-                margin-top: -16px;
+                margin-top: 0;
                 border: none;
                 border-radius: 24px 24px 0 0;
                 box-shadow: 0 -14px 30px -24px rgba(24,34,48,0.45);
@@ -1383,12 +1383,16 @@
             .map-panel {
                 height: clamp(210px, 32vh, 300px);
                 min-height: 210px;
-                border-radius: 0 0 20px 20px;
+                border-radius: 0;
             }
 
             .form-panel {
-                margin-top: -14px;
+                margin-top: 0;
                 border-radius: 20px 20px 0 0;
+            }
+
+            .map-overlay-card {
+                display: none;
             }
 
             .form-header {
@@ -1532,7 +1536,7 @@
                 </div>
 
                 <!-- ROUTE PREFERENCES SECTION -->
-                <div class="form-section" id="sectionStep2a" data-step="2">
+                <div class="form-section" id="sectionStep2a" data-step="2" hidden aria-hidden="true">
                     <h3 class="form-section-title">Preferences</h3>
 
                     <div class="input-group">
@@ -1564,7 +1568,7 @@
                 </div>
 
                 <!-- VEHICLE & COSTS SECTION -->
-                <div class="form-section" id="sectionStep2b" data-step="2">
+                <div class="form-section" id="sectionStep2b" data-step="2" hidden aria-hidden="true">
                     <h3 class="form-section-title">Vehicle & Costs</h3>
 
                     <div class="input-group two-cols">
@@ -1644,7 +1648,7 @@
                 </div>
 
                 <!-- COST SUMMARY SECTION -->
-                <div class="cost-summary" id="sectionStep3" data-step="3">
+                <div class="cost-summary" id="sectionStep3" data-step="3" hidden aria-hidden="true">
                     <div class="cost-total">
                         <p class="cost-total-label">Total Trip Cost</p>
                         <div class="cost-total-value" id="totalCost">₱0.00</div>
