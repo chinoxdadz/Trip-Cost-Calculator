@@ -2,5 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_MAPBOX_PUBLIC_TOKEN": "pk.eyJ1IjoiY2hpbm94ZGFkeiIsImEiOiJjbW5kNmVyejAxYXo1MnBwNmx6ZmtrdHg4In0.h-wQhZZcAdDLfssdD2pmvg"
+  }
 }
