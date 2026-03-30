@@ -604,7 +604,10 @@
             maximumFractionDigits: 2
         });
 
-        const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN || CONFIG.tokenPlaceholder;
+        const MAPBOX_ACCESS_TOKEN =
+            import.meta.env?.VITE_MAPBOX_PUBLIC_TOKEN ||
+            window.VITE_MAPBOX_PUBLIC_TOKEN ||
+            CONFIG.tokenPlaceholder;
         mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
         const refs = {
