@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Trip Cost Calculator</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #0d806f;
+            --accent-strong: #06695a;
+            --bg-soft: #eef4f8;
+            --sheet: #ffffff;
+            --text: #1b2736;
+            --muted: #607286;
+            --line: #d9e1ea;
+            --danger: #b42318;
+            --radius: 18px;
+            --shadow: 0 18px 44px -28px rgba(19, 33, 48, 0.58);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+            background: var(--bg-soft);
+            color: var(--text);
+        }
+
+        .app {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #routeMap {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-gradient {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(to top, rgba(14, 20, 28, 0.18), transparent 40%);
+        }
+
+        .sheet {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 30;
+            background: var(--sheet);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            box-shadow: var(--shadow);
+            transition: height 0.25s ease;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            overflow: hidden;
+        }
+
+        .sheet-collapsed { height: 120px; }
+        .sheet-half { height: 56vh; }
+        .sheet-full { height: 90vh; }
+
+        .sheet-head {
+            padding: 8px 16px 10px;
+            border-bottom: 1px solid #edf2f7;
+            background: #fff;
+        }
+
+        .handle {
+            width: 44px;
+            height: 5px;
+            border-radius: 999px;
+            margin: 0 auto 8px;
+            background: #cdd8e4;
+            cursor: pointer;
+        }
+
+        .state-tabs {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .state-btn {
+            border: 1px solid #d2ddeb;
+            background: #f7fbff;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.78rem;
+            color: #4b6076;
+            cursor: pointer;
+        }
+
+        .state-btn.active {
+            background: #e8f6f3;
+            border-color: #b5e1d8;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .sheet-body {
+            overflow: auto;
+            padding: 12px 14px 18px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .sheet-card {
+            border: 1px solid #e1e8f0;
+            border-radius: var(--radius);
+            padding: 12px;
+            background: #fff;
+        }
+
+        .hidden-collapsed,
+        .hidden-half,
+        .hidden-full {
+            display: none;
+        }
+
+        .sheet.sheet-half .hidden-half,
+        .sheet.sheet-full .hidden-half,
+        .sheet.sheet-full .hidden-full,
+        .sheet:not(.sheet-collapsed) .hidden-collapsed {
+            display: block;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 16px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 5px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: #d6e2ee;
+        }
+
+        .timeline-item {
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -16px;
+            top: 16px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #9dd4c8;
+        }
+
+        .timeline-item.destination::before {
+            background: #d14343;
+            box-shadow: 0 0 0 1px #f0c9c9;
+        }
+
+        .timeline-item.stop::before {
+            background: #f59e0b;
+            box-shadow: 0 0 0 1px #f7dcad;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #4e647b;
+        }
+
+        input,
+        select,
+        button {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 11px 12px;
+            font-size: 0.95rem;
+            background: #fff;
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(13, 128, 111, 0.16);
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .suggestions {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 6px);
+            border: 1px solid #d8e2ef;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 16px 30px -22px rgba(19, 33, 48, 0.7);
+            overflow: hidden;
+            max-height: 220px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+
+        .suggestions.show { display: block; }
+
+        .suggestion-item {
+            border: none;
+            border-bottom: 1px solid #edf2f8;
+            text-align: left;
+            font-weight: 500;
+            background: #fff;
+            cursor: pointer;
+            padding: 10px 12px;
+        }
+
+        .suggestion-item:hover { background: #f4f9ff; }
+        .suggestion-item:last-child { border-bottom: none; }
+
+        .stop-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: start;
+        }
+
+        .stop-remove {
+            width: auto;
+            border-color: #f1c7c7;
+            background: #fff2f2;
+            color: #b42318;
+            font-size: 0.82rem;
+            padding: 10px;
+        }
+
+        .fab {
+            position: absolute;
+            right: 18px;
+            top: -20px;
+            width: 46px;
+            height: 46px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #fff;
+            font-size: 1.45rem;
+            box-shadow: 0 14px 26px -14px rgba(6, 105, 90, 0.9);
+            cursor: pointer;
+        }
+
+        .segmented {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            background: #f2f6fb;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .segmented button {
+            border: none;
+            background: transparent;
+            color: #4a6077;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 9px;
+        }
+
+        .segmented button.active {
+            background: #fff;
+            color: var(--accent);
+            border-radius: 9px;
+            box-shadow: inset 0 0 0 1px #d4e8e3;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.84rem;
+            color: #3f566d;
+            font-weight: 600;
+        }
+
+        .loading.show { display: inline-flex; }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #c7d7ea;
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hint {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #547089;
+        }
+
+        .hint.error { color: var(--danger); }
+
+        .price-highlight {
+            border-radius: 14px;
+            border: 1px solid #c8ebe3;
+            background: linear-gradient(135deg, #e6f8f4, #f8fffd);
+            padding: 12px;
+        }
+
+        .price-highlight small {
+            display: block;
+            color: #2f5c55;
+            text-transform: uppercase;
+            font-size: 0.73rem;
+            letter-spacing: 0.07em;
+            margin-bottom: 2px;
+        }
+
+        .price-highlight strong {
+            font-size: 1.75rem;
+            line-height: 1.1;
+            color: var(--accent-strong);
+        }
+
+        .breakdown {
+            list-style: none;
+            margin: 10px 0 0;
+            padding: 0;
+            display: grid;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .breakdown li {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #e3e9f0;
+            padding-bottom: 6px;
+        }
+
+        .breakdown li:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        details.advanced {
+            border: 1px solid #e0e7f0;
+            border-radius: 14px;
+            padding: 8px 10px;
+            background: #fbfdff;
+        }
+
+        details.advanced summary {
+            cursor: pointer;
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #3d5b77;
+            list-style: none;
+        }
+
+        details.advanced summary::-webkit-details-marker { display: none; }
+
+        .advanced-grid {
+            margin-top: 10px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .advanced-grid.two {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .book-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: 800;
+            color: #fff;
+            background: linear-gradient(135deg, #0877ea, #1b5ecd);
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .status-line {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #556f87;
+        }
+
+        @media (min-width: 980px) {
+            .sheet {
+                left: auto;
+                width: 430px;
+                right: 22px;
+                bottom: 16px;
+                border-radius: 24px;
+                max-height: calc(100vh - 32px);
+            }
+
+            .sheet-collapsed { height: 120px; }
+            .sheet-half { height: 520px; }
+            .sheet-full { height: 780px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div id="routeMap"></div>
+        <div class="map-gradient"></div>
+
+        <section id="sheet" class="sheet sheet-half">
+            <div class="sheet-head">
+                <div class="handle" id="sheetHandle" title="Change panel size"></div>
+                <div class="state-tabs">
+                    <button type="button" class="state-btn" data-sheet="collapsed">Total</button>
+                    <button type="button" class="state-btn active" data-sheet="half">Route</button>
+                    <button type="button" class="state-btn" data-sheet="full">Details</button>
+                </div>
+            </div>
+
+            <div class="sheet-body">
+                <div class="sheet-card">
+                    <div class="price-highlight">
+                        <small>Total Trip Cost</small>
+                        <strong id="totalCost">PHP 0.00</strong>
+                    </div>
+                    <p class="status-line hidden-collapsed">Per person: <strong id="perPersonInline">PHP 0.00</strong></p>
+                </div>
+
+                <div class="sheet-card hidden-half" style="position: relative;">
+                    <button id="addStopFab" class="fab" type="button" title="Add stop">+</button>
+
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <label for="originInput">Start</label>
+                            <div class="input-wrap">
+                                <input id="originInput" type="text" placeholder="e.g., Quezon City, Metro Manila" autocomplete="off">
+                                <div id="originSuggestions" class="suggestions" role="listbox"></div>
+                            </div>
+                        </div>
+
+                        <div id="stopsList"></div>
+
+                        <div class="timeline-item destination">
+                            <label for="destinationInput">Destination</label>
+                            <div class="input-wrap">
+                                <input id="destinationInput" type="text" placeholder="e.g., Tagaytay, Cavite" autocomplete="off">
+                                <div id="destinationSuggestions" class="suggestions" role="listbox"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p id="stopsHint" class="hint" style="margin-top: 10px;">Stops: 0/5. Tap + to add a stop.</p>
+
+                    <div style="margin-top: 10px;">
+                        <label>Route Preference</label>
+                        <div class="segmented">
+                            <button type="button" id="withExpresswayBtn" class="active">With Expressway</button>
+                            <button type="button" id="avoidExpresswayBtn">Avoid Expressway</button>
+                        </div>
+                        <p id="tollExpectationMsg" class="hint" style="margin-top: 6px;">Expressway enabled: toll roads are likely included.</p>
+                    </div>
+
+                    <div style="margin-top: 10px; display: grid; gap: 6px;">
+                        <div id="routeLoading" class="loading"><span class="spinner"></span><span>Recalculating route...</span></div>
+                        <p class="status-line">Distance: <strong id="distanceText">0.00 km</strong></p>
+                        <p class="status-line">Estimated Time: <strong id="durationText">0m</strong></p>
+                        <p id="routeStatus" class="hint">Route updates automatically as you type and select places.</p>
+                    </div>
+                </div>
+
+                <details class="advanced hidden-full" id="advancedSection">
+                    <summary>Advanced Inputs</summary>
+                    <div class="advanced-grid two">
+                        <div>
+                            <label for="fuelPrice">Fuel Price (PHP/L)</label>
+                            <input id="fuelPrice" type="number" min="0" step="0.1" value="65">
+                        </div>
+                        <div>
+                            <label for="vehicleType">Vehicle Type</label>
+                            <select id="vehicleType">
+                                <option value="15">Sedan (15 km/L)</option>
+                                <option value="10" selected>SUV/Innova (10 km/L)</option>
+                                <option value="7">Van (7 km/L)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="vehicleClass">Toll Vehicle Class</label>
+                            <select id="vehicleClass">
+                                <option value="class1" selected>Class 1: Sedan</option>
+                                <option value="class2">Class 2: SUV/Van</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Trip Mode</label>
+                            <div class="segmented">
+                                <button type="button" id="selfMode" class="active">Self-drive</button>
+                                <button type="button" id="driverMode">With Driver</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="rentalFee">Rental Fee</label>
+                            <input id="rentalFee" type="number" min="0" step="0.01" value="3500">
+                        </div>
+                        <div>
+                            <label for="estimatedToll">Estimated Toll</label>
+                            <input id="estimatedToll" type="text" value="PHP 0.00" readonly>
+                        </div>
+                        <div>
+                            <label for="tollFee">Toll Fees (Manual Override)</label>
+                            <input id="tollFee" type="number" min="0" step="0.01" value="0">
+                        </div>
+                        <div id="driverFieldWrap" style="display:none;">
+                            <label for="driverFee">Driver Fee</label>
+                            <input id="driverFee" type="number" min="0" step="0.01" value="0">
+                        </div>
+                        <div>
+                            <label for="passengers">Passengers</label>
+                            <input id="passengers" type="number" min="1" step="1" value="4">
+                        </div>
+                    </div>
+                </details>
+
+                <div class="sheet-card hidden-full">
+                    <p class="status-line" style="margin-bottom: 8px;">Efficiency: <strong id="efficiencyNote">10.00 km/L</strong></p>
+                    <ul class="breakdown">
+                        <li><span>Fuel</span><strong id="fuelCost">PHP 0.00</strong></li>
+                        <li><span>Toll</span><strong id="tollCost">PHP 0.00</strong></li>
+                        <li><span>Rental</span><strong id="rentalCost">PHP 0.00</strong></li>
+                        <li><span>Driver</span><strong id="driverCost">PHP 0.00</strong></li>
+                        <li><span>Total</span><strong id="totalLine">PHP 0.00</strong></li>
+                        <li><span>Per Person</span><strong id="perPersonCost">PHP 0.00</strong></li>
+                    </ul>
+                </div>
+
+                <div class="sheet-card hidden-full">
+                    <button type="button" class="book-btn" id="bookNowBtn">Book Now</button>
+                    <p id="bookingStatus" class="hint" style="margin-top: 8px;">Google Form booking opens with mapped prefilled fields.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+    <script type="module">
+        const CONFIG = {
+            tokenPlaceholder: "YOUR_MAPBOX_ACCESS_TOKEN_HERE",
+            mapStyle: "mapbox://styles/mapbox/streets-v12",
+            defaultCenter: [121.03, 14.6],
+            defaultZoom: 7,
+            routeSourceId: "route-line",
+            autocompleteDebounceMs: 260,
+            autocompleteLimit: 5,
+            maxStops: 5,
+            tollRates: {
+                class1: { baseFee: 50, perKm: 4.5 },
+                class2: { baseFee: 80, perKm: 6.5 }
+            },
+            booking: {
+                formUrl: "https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform",
+                mapping: {
+                    origin: "",
+                    destination: "",
+                    stops: "",
+                    vehicleType: "",
+                    distance: "",
+                    total: "",
+                    perPerson: "",
+                    driverToggle: ""
+                }
+            }
+        };
+
+        const currencyPH = new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_PUBLIC_TOKEN || CONFIG.tokenPlaceholder;
+        mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+        const refs = {
+            sheet: document.getElementById("sheet"),
+            sheetHandle: document.getElementById("sheetHandle"),
+            stateButtons: Array.from(document.querySelectorAll("[data-sheet]")),
+            originInput: document.getElementById("originInput"),
+            destinationInput: document.getElementById("destinationInput"),
+            originSuggestions: document.getElementById("originSuggestions"),
+            destinationSuggestions: document.getElementById("destinationSuggestions"),
+            stopsList: document.getElementById("stopsList"),
+            stopsHint: document.getElementById("stopsHint"),
+            addStopFab: document.getElementById("addStopFab"),
+            withExpresswayBtn: document.getElementById("withExpresswayBtn"),
+            avoidExpresswayBtn: document.getElementById("avoidExpresswayBtn"),
+            tollExpectationMsg: document.getElementById("tollExpectationMsg"),
+            routeLoading: document.getElementById("routeLoading"),
+            routeStatus: document.getElementById("routeStatus"),
+            distanceText: document.getElementById("distanceText"),
+            durationText: document.getElementById("durationText"),
+            fuelPrice: document.getElementById("fuelPrice"),
+            vehicleType: document.getElementById("vehicleType"),
+            vehicleClass: document.getElementById("vehicleClass"),
+            rentalFee: document.getElementById("rentalFee"),
+            tollFee: document.getElementById("tollFee"),
+            estimatedToll: document.getElementById("estimatedToll"),
+            passengers: document.getElementById("passengers"),
+            selfMode: document.getElementById("selfMode"),
+            driverMode: document.getElementById("driverMode"),
+            driverFieldWrap: document.getElementById("driverFieldWrap"),
+            driverFee: document.getElementById("driverFee"),
+            efficiencyNote: document.getElementById("efficiencyNote"),
+            fuelCost: document.getElementById("fuelCost"),
+            tollCost: document.getElementById("tollCost"),
+            rentalCost: document.getElementById("rentalCost"),
+            driverCost: document.getElementById("driverCost"),
+            totalLine: document.getElementById("totalLine"),
+            totalCost: document.getElementById("totalCost"),
+            perPersonCost: document.getElementById("perPersonCost"),
+            perPersonInline: document.getElementById("perPersonInline"),
+            bookNowBtn: document.getElementById("bookNowBtn"),
+            bookingStatus: document.getElementById("bookingStatus")
+        };
+
+        const state = {
+            sheetState: "half",
+            withExpressway: true,
+            withDriver: false,
+            route: { distanceKm: 0, durationSec: 0 },
+            origin: { text: "", coord: null },
+            destination: { text: "", coord: null },
+            stops: [],
+            stopMarkers: [],
+            startMarker: null,
+            endMarker: null,
+            map: null,
+            tollManuallyEdited: false,
+            requestId: 0,
+            autocompleteRequestId: {}
+        };
+
+        function safeNumber(raw) {
+            const value = Number.parseFloat(raw);
+            return Number.isFinite(value) && value >= 0 ? value : 0;
+        }
+
+        function debounce(fn, delay) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        function setSheetState(nextState) {
+            state.sheetState = nextState;
+            refs.sheet.classList.remove("sheet-collapsed", "sheet-half", "sheet-full");
+            refs.sheet.classList.add(`sheet-${nextState}`);
+            refs.stateButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.sheet === nextState));
+        }
+
+        function cycleSheetState() {
+            const order = ["collapsed", "half", "full"];
+            const idx = order.indexOf(state.sheetState);
+            setSheetState(order[(idx + 1) % order.length]);
+        }
+
+        function setRouteStatus(text, isError = false) {
+            refs.routeStatus.textContent = text;
+            refs.routeStatus.classList.toggle("error", isError);
+        }
+
+        function setRouteLoading(isLoading) {
+            refs.routeLoading.classList.toggle("show", isLoading);
+        }
+
+        function getTollRate() {
+            return CONFIG.tollRates[refs.vehicleClass.value] || CONFIG.tollRates.class1;
+        }
+
+        function estimateToll(distanceKm) {
+            if (!state.withExpressway) return 0;
+            const rate = getTollRate();
+            return (distanceKm * rate.perKm) + rate.baseFee;
+        }
+
+        function applyEstimatedToll() {
+            const est = estimateToll(state.route.distanceKm);
+            refs.estimatedToll.value = currencyPH.format(est);
+
+            if (!state.withExpressway) {
+                state.tollManuallyEdited = false;
+                refs.tollFee.value = "0";
+                refs.tollFee.disabled = true;
+                return;
+            }
+
+            refs.tollFee.disabled = false;
+            if (!state.tollManuallyEdited) refs.tollFee.value = est.toFixed(2);
+        }
+
+        function renderRouteHint() {
+            if (state.withExpressway) {
+                refs.tollExpectationMsg.textContent = "Expressway enabled: toll roads are likely included.";
+            } else {
+                refs.tollExpectationMsg.textContent = "Avoid Expressway enabled: route avoids toll roads where possible.";
+            }
+        }
+
+        function renderTripCost() {
+            const distanceKm = state.route.distanceKm;
+            const fuelPrice = safeNumber(refs.fuelPrice.value);
+            const efficiency = Math.max(1, safeNumber(refs.vehicleType.value));
+            const rental = safeNumber(refs.rentalFee.value);
+            const toll = safeNumber(refs.tollFee.value);
+            const driver = state.withDriver ? safeNumber(refs.driverFee.value) : 0;
+            const passengers = Math.max(1, Math.floor(safeNumber(refs.passengers.value) || 1));
+
+            const fuel = (distanceKm / efficiency) * fuelPrice;
+            const total = fuel + rental + toll + driver;
+            const perPerson = total / passengers;
+
+            refs.efficiencyNote.textContent = `${efficiency.toFixed(2)} km/L`;
+            refs.fuelCost.textContent = currencyPH.format(fuel);
+            refs.tollCost.textContent = currencyPH.format(toll);
+            refs.rentalCost.textContent = currencyPH.format(rental);
+            refs.driverCost.textContent = currencyPH.format(driver);
+            refs.totalLine.textContent = currencyPH.format(total);
+            refs.totalCost.textContent = currencyPH.format(total);
+            refs.perPersonCost.textContent = currencyPH.format(perPerson);
+            refs.perPersonInline.textContent = currencyPH.format(perPerson);
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.max(0, Math.round(seconds / 60));
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            if (h && m) return `${h}h ${m}m`;
+            if (h) return `${h}h`;
+            return `${m}m`;
+        }
+
+        function buildGeocodeUrl(text, limit = 1) {
+            return `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?autocomplete=true&country=ph&limit=${limit}&access_token=${mapboxgl.accessToken}`;
+        }
+
+        function buildDirectionsUrl(coords) {
+            const joined = coords.map((c) => `${c[0]},${c[1]}`).join(";");
+            const exclude = state.withExpressway ? "" : "&exclude=toll";
+            return `https://api.mapbox.com/directions/v5/mapbox/driving/${joined}?geometries=geojson&overview=full&steps=false${exclude}&access_token=${mapboxgl.accessToken}`;
+        }
+
+        async function fetchJson(url) {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Network request failed.");
+            return res.json();
+        }
+
+        function createStop() {
+            return { id: `${Date.now()}-${Math.floor(Math.random() * 9999)}`, text: "", coord: null };
+        }
+
+        function updateStopsHint() {
+            const count = state.stops.length;
+            refs.stopsHint.textContent = `Stops: ${count}/${CONFIG.maxStops}. Route order is Start -> Stops -> Destination.`;
+            refs.addStopFab.disabled = count >= CONFIG.maxStops;
+        }
+
+        function addStop() {
+            if (state.stops.length >= CONFIG.maxStops) {
+                setRouteStatus(`Maximum of ${CONFIG.maxStops} stops reached.`, true);
+                return;
+            }
+            state.stops.push(createStop());
+            renderStops();
+            updateStopsHint();
+            scheduleRouteRefresh();
+        }
+
+        function removeStop(id) {
+            state.stops = state.stops.filter((s) => s.id !== id);
+            renderStops();
+            updateStopsHint();
+            scheduleRouteRefresh();
+        }
+
+        function nextAutocompleteRequestId(key) {
+            const next = (state.autocompleteRequestId[key] || 0) + 1;
+            state.autocompleteRequestId[key] = next;
+            return next;
+        }
+
+        function isLatestAutocompleteRequest(key, id) {
+            return state.autocompleteRequestId[key] === id;
+        }
+
+        function hideSuggestions(list) {
+            list.innerHTML = "";
+            list.classList.remove("show");
+        }
+
+        function attachAutocomplete(inputEl, listEl, key, onSelect, onTyping) {
+            const load = debounce(async () => {
+                const query = inputEl.value.trim();
+                if (query.length < 2) {
+                    hideSuggestions(listEl);
+                    return;
+                }
+
+                const reqId = nextAutocompleteRequestId(key);
+                try {
+                    const data = await fetchJson(buildGeocodeUrl(query, CONFIG.autocompleteLimit));
+                    if (!isLatestAutocompleteRequest(key, reqId)) return;
+
+                    listEl.innerHTML = "";
+                    const places = data.features || [];
+                    if (!places.length) {
+                        hideSuggestions(listEl);
+                        return;
+                    }
+
+                    places.forEach((place) => {
+                        const item = document.createElement("button");
+                        item.type = "button";
+                        item.className = "suggestion-item";
+                        item.textContent = place.place_name;
+                        item.addEventListener("click", () => {
+                            inputEl.value = place.place_name;
+                            onSelect(place);
+                            hideSuggestions(listEl);
+                        });
+                        listEl.appendChild(item);
+                    });
+
+                    listEl.classList.add("show");
+                } catch (_e) {
+                    hideSuggestions(listEl);
+                }
+            }, CONFIG.autocompleteDebounceMs);
+
+            inputEl.addEventListener("input", () => {
+                onTyping();
+                load();
+            });
+
+            inputEl.addEventListener("blur", () => setTimeout(() => hideSuggestions(listEl), 120));
+            inputEl.addEventListener("focus", () => {
+                if (listEl.children.length) listEl.classList.add("show");
+            });
+        }
+
+        function renderStops() {
+            refs.stopsList.innerHTML = "";
+            state.stops.forEach((stop, index) => {
+                const row = document.createElement("div");
+                row.className = "stop-row timeline-item stop";
+
+                const wrap = document.createElement("div");
+                wrap.className = "input-wrap";
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.placeholder = `Stop ${index + 1}`;
+                input.value = stop.text;
+                input.autocomplete = "off";
+
+                const suggestions = document.createElement("div");
+                suggestions.className = "suggestions";
+                suggestions.setAttribute("role", "listbox");
+
+                wrap.appendChild(input);
+                wrap.appendChild(suggestions);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "stop-remove";
+                removeBtn.textContent = "Remove";
+                removeBtn.addEventListener("click", () => removeStop(stop.id));
+
+                row.appendChild(wrap);
+                row.appendChild(removeBtn);
+                refs.stopsList.appendChild(row);
+
+                attachAutocomplete(
+                    input,
+                    suggestions,
+                    `stop-${stop.id}`,
+                    (place) => {
+                        stop.text = place.place_name;
+                        stop.coord = place.center;
+                        scheduleRouteRefresh();
+                    },
+                    () => {
+                        stop.text = input.value;
+                        stop.coord = null;
+                        scheduleRouteRefresh();
+                    }
+                );
+            });
+        }
+
+        function setMapMarkers(startCoord, endCoord, stopCoords) {
+            if (!state.map) return;
+
+            if (!state.startMarker) {
+                state.startMarker = new mapboxgl.Marker({ color: "#0d806f" }).setLngLat(startCoord).addTo(state.map);
+            } else {
+                state.startMarker.setLngLat(startCoord);
+            }
+
+            if (!state.endMarker) {
+                state.endMarker = new mapboxgl.Marker({ color: "#d14343" }).setLngLat(endCoord).addTo(state.map);
+            } else {
+                state.endMarker.setLngLat(endCoord);
+            }
+
+            state.stopMarkers.forEach((m) => m.remove());
+            state.stopMarkers = stopCoords.map((coord, idx) => (
+                new mapboxgl.Marker({ color: "#f59e0b" })
+                    .setLngLat(coord)
+                    .setPopup(new mapboxgl.Popup({ offset: 24 }).setText(`Stop ${idx + 1}`))
+                    .addTo(state.map)
+            ));
+        }
+
+        function renderRouteOnMap(geometry, startCoord, endCoord, stopCoords) {
+            if (!state.map) return;
+
+            const feature = { type: "Feature", properties: {}, geometry };
+            if (state.map.getSource(CONFIG.routeSourceId)) {
+                state.map.getSource(CONFIG.routeSourceId).setData(feature);
+            } else {
+                state.map.addSource(CONFIG.routeSourceId, { type: "geojson", data: feature });
+                state.map.addLayer({
+                    id: CONFIG.routeSourceId,
+                    type: "line",
+                    source: CONFIG.routeSourceId,
+                    paint: {
+                        "line-color": "#0d806f",
+                        "line-width": 5,
+                        "line-opacity": 0.9
+                    }
+                });
+            }
+
+            const bounds = new mapboxgl.LngLatBounds();
+            [startCoord, ...stopCoords, endCoord].forEach((coord) => bounds.extend(coord));
+            state.map.fitBounds(bounds, { padding: 60, duration: 520 });
+            setMapMarkers(startCoord, endCoord, stopCoords);
+        }
+
+        async function resolveCoord(text, existing) {
+            const value = text.trim();
+            if (!value) return null;
+            if (existing) return existing;
+            const data = await fetchJson(buildGeocodeUrl(value, 1));
+            if (!data.features || !data.features.length) throw new Error(`Location not found: ${value}`);
+            return data.features[0].center;
+        }
+
+        async function recalculateRoute() {
+            if (MAPBOX_ACCESS_TOKEN === CONFIG.tokenPlaceholder || !MAPBOX_ACCESS_TOKEN) {
+                setRouteStatus("Set your Mapbox public token to enable routing.", true);
+                return;
+            }
+
+            const originText = refs.originInput.value.trim();
+            const destText = refs.destinationInput.value.trim();
+            if (!originText || !destText) {
+                setRouteStatus("Enter both start and destination.", true);
+                return;
+            }
+
+            const myReq = ++state.requestId;
+            setRouteLoading(true);
+
+            try {
+                const startCoord = await resolveCoord(originText, state.origin.coord);
+                const endCoord = await resolveCoord(destText, state.destination.coord);
+
+                const stopCoords = [];
+                for (const stop of state.stops) {
+                    if (!stop.text.trim()) continue;
+                    const coord = await resolveCoord(stop.text, stop.coord);
+                    stop.coord = coord;
+                    stopCoords.push(coord);
+                }
+
+                const data = await fetchJson(buildDirectionsUrl([startCoord, ...stopCoords, endCoord]));
+                if (myReq !== state.requestId) return;
+                if (!data.routes || !data.routes.length) throw new Error("No route found.");
+
+                const route = data.routes[0];
+                state.origin.coord = startCoord;
+                state.destination.coord = endCoord;
+                state.route.distanceKm = Number(route.distance || 0) / 1000;
+                state.route.durationSec = Number(route.duration || 0);
+
+                refs.distanceText.textContent = `${state.route.distanceKm.toFixed(2)} km`;
+                refs.durationText.textContent = formatDuration(state.route.durationSec);
+
+                applyEstimatedToll();
+                renderTripCost();
+
+                if (state.map) {
+                    const render = () => renderRouteOnMap(route.geometry, startCoord, endCoord, stopCoords);
+                    if (state.map.loaded()) render();
+                    else state.map.once("load", render);
+                }
+
+                setRouteStatus("Route updated automatically.");
+            } catch (err) {
+                if (myReq !== state.requestId) return;
+                setRouteStatus(err.message || "Unable to update route.", true);
+            } finally {
+                if (myReq === state.requestId) setRouteLoading(false);
+            }
+        }
+
+        const scheduleRouteRefresh = debounce(recalculateRoute, 420);
+
+        function setRoutePreference(withExpressway) {
+            if (state.withExpressway === withExpressway) return;
+            state.withExpressway = withExpressway;
+            refs.withExpresswayBtn.classList.toggle("active", withExpressway);
+            refs.avoidExpresswayBtn.classList.toggle("active", !withExpressway);
+            renderRouteHint();
+            applyEstimatedToll();
+            renderTripCost();
+            scheduleRouteRefresh();
+        }
+
+        function setTripMode(withDriver) {
+            state.withDriver = withDriver;
+            refs.selfMode.classList.toggle("active", !withDriver);
+            refs.driverMode.classList.toggle("active", withDriver);
+            refs.driverFieldWrap.style.display = withDriver ? "block" : "none";
+            renderTripCost();
+        }
+
+        function buildBookingPayload() {
+            return {
+                origin: refs.originInput.value.trim(),
+                destination: refs.destinationInput.value.trim(),
+                stops: state.stops.map((s) => s.text.trim()).filter(Boolean).join(" | "),
+                vehicleType: refs.vehicleType.options[refs.vehicleType.selectedIndex]?.text || "",
+                distance: state.route.distanceKm.toFixed(2),
+                total: refs.totalLine.textContent,
+                perPerson: refs.perPersonCost.textContent,
+                driverToggle: state.withDriver ? "With Driver" : "Self-drive"
+            };
+        }
+
+        function handleBooking() {
+            const formUrl = CONFIG.booking.formUrl;
+            if (!formUrl || formUrl.includes("YOUR_FORM_ID")) {
+                refs.bookingStatus.textContent = "Set CONFIG.booking.formUrl and entry mappings first.";
+                refs.bookingStatus.classList.add("error");
+                return;
+            }
+
+            const payload = buildBookingPayload();
+            const params = new URLSearchParams();
+            const missing = [];
+
+            Object.entries(CONFIG.booking.mapping).forEach(([key, entry]) => {
+                if (!entry) {
+                    missing.push(key);
+                    return;
+                }
+                if (payload[key]) params.set(entry, payload[key]);
+            });
+
+            const url = `${formUrl.replace(/viewform(\?.*)?$/i, "viewform")}?${params.toString()}`;
+            window.open(url, "_blank", "noopener");
+
+            refs.bookingStatus.textContent = missing.length
+                ? `Opened booking form. Unmapped fields: ${missing.join(", ")}`
+                : "Opened booking form with mapped values.";
+            refs.bookingStatus.classList.remove("error");
+        }
+
+        function bindEvents() {
+            refs.sheetHandle.addEventListener("click", cycleSheetState);
+            refs.stateButtons.forEach((btn) => btn.addEventListener("click", () => setSheetState(btn.dataset.sheet)));
+
+            refs.addStopFab.addEventListener("click", addStop);
+            refs.withExpresswayBtn.addEventListener("click", () => setRoutePreference(true));
+            refs.avoidExpresswayBtn.addEventListener("click", () => setRoutePreference(false));
+            refs.selfMode.addEventListener("click", () => setTripMode(false));
+            refs.driverMode.addEventListener("click", () => setTripMode(true));
+            refs.bookNowBtn.addEventListener("click", handleBooking);
+
+            attachAutocomplete(
+                refs.originInput,
+                refs.originSuggestions,
+                "origin",
+                (place) => {
+                    state.origin = { text: place.place_name, coord: place.center };
+                    scheduleRouteRefresh();
+                },
+                () => {
+                    state.origin = { text: refs.originInput.value, coord: null };
+                    scheduleRouteRefresh();
+                }
+            );
+
+            attachAutocomplete(
+                refs.destinationInput,
+                refs.destinationSuggestions,
+                "destination",
+                (place) => {
+                    state.destination = { text: place.place_name, coord: place.center };
+                    scheduleRouteRefresh();
+                },
+                () => {
+                    state.destination = { text: refs.destinationInput.value, coord: null };
+                    scheduleRouteRefresh();
+                }
+            );
+
+            [refs.fuelPrice, refs.vehicleType, refs.rentalFee, refs.driverFee, refs.passengers].forEach((el) => {
+                el.addEventListener("input", renderTripCost);
+                el.addEventListener("change", renderTripCost);
+            });
+
+            refs.vehicleClass.addEventListener("change", () => {
+                state.tollManuallyEdited = false;
+                applyEstimatedToll();
+                renderTripCost();
+            });
+
+            refs.tollFee.addEventListener("input", () => {
+                if (state.withExpressway) state.tollManuallyEdited = true;
+                renderTripCost();
+            });
+        }
+
+        function initializeMap() {
+            if (MAPBOX_ACCESS_TOKEN === CONFIG.tokenPlaceholder || !MAPBOX_ACCESS_TOKEN) {
+                setRouteStatus("Set your Mapbox public token to enable live routing.", true);
+                return;
+            }
+
+            state.map = new mapboxgl.Map({
+                container: "routeMap",
+                style: CONFIG.mapStyle,
+                center: CONFIG.defaultCenter,
+                zoom: CONFIG.defaultZoom
+            });
+        }
+
+        function init() {
+            initializeMap();
+            setSheetState("half");
+            renderStops();
+            updateStopsHint();
+            renderRouteHint();
+            applyEstimatedToll();
+            renderTripCost();
+            bindEvents();
+        }
+
+        init();
+    </script>
+</body>
+</html>
