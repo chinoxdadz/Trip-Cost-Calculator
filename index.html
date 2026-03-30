@@ -604,9 +604,11 @@
             maximumFractionDigits: 2
         });
 
+        const DEFAULT_MAPBOX_PUBLIC_TOKEN = "pk.eyJ1IjoiY2hpbm94ZGFkeiIsImEiOiJjbW5kNmVyejAxYXo1MnBwNmx6ZmtrdHg4In0.h-wQhZZcAdDLfssdD2pmvg";
         const MAPBOX_ACCESS_TOKEN =
             import.meta.env?.VITE_MAPBOX_PUBLIC_TOKEN ||
             window.VITE_MAPBOX_PUBLIC_TOKEN ||
+            DEFAULT_MAPBOX_PUBLIC_TOKEN ||
             CONFIG.tokenPlaceholder;
         mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
