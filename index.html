@@ -1690,11 +1690,11 @@
 
                 <!-- BOOKING SECTION -->
                 <div class="form-section">
-                    <button type="button" id="bookNowBtn" class="btn-primary">
+                    <button type="button" id="bookNowBtn" class="btn-primary" disabled title="Set a route first to enable booking.">
                         Book Now
                     </button>
                     <p id="bookingStatus" class="hint" style="text-align: center; margin-top: var(--spacing-sm);">
-                        Opens Google Form with pre-filled values
+                        Calculate a route to enable booking.
                     </p>
                 </div>
             </div>
@@ -1713,6 +1713,8 @@
 
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     <script type="module">
+        import { showBookingModal, computeCosts } from "./booking_quotation.js";
+
         const CONFIG = {
             mapStyle: "mapbox://styles/mapbox/streets-v12",
             defaultCenter: [121.03, 14.6],
@@ -1787,7 +1789,9 @@
             sectionStep3: document.getElementById("sectionStep3"),
             formContent: document.querySelector(".form-content"),
             container: document.querySelector(".container"),
-            formSections: Array.from(document.querySelectorAll(".form-section[data-step], #sectionStep3"))
+            formSections: Array.from(document.querySelectorAll(".form-section[data-step], #sectionStep3")),
+            bookNowBtn: document.getElementById("bookNowBtn"),
+            bookingStatus: document.getElementById("bookingStatus")
         };
 
         const state = {
@@ -2175,6 +2179,17 @@
             refs.sectionStep2b.setAttribute("aria-hidden", String(!showStep2));
             refs.sectionStep3.setAttribute("aria-hidden", String(!showStep3));
 
+            // Keep "Book Now" in sync with route availability at all steps.
+            if (refs.bookNowBtn) {
+                refs.bookNowBtn.disabled = !hasRoute;
+                refs.bookNowBtn.title = hasRoute ? "" : "Set a route first to enable booking.";
+            }
+            if (refs.bookingStatus) {
+                refs.bookingStatus.textContent = hasRoute
+                    ? "Opens Google Form with your trip details pre-filled."
+                    : "Calculate a route to enable booking.";
+            }
+
             if (!hasLocationText || !hasResolvedLocations) {
                 setActiveStep(1);
                 return;
@@ -2403,6 +2418,12 @@
             refs.useCurrentLocationBtn.addEventListener("click", handleUseCurrentLocation);
             refs.mapToggleBtn.addEventListener("click", toggleMobileMap);
             refs.withExpresswayBtn.addEventListener("click", () => setRoutePreference(true));
+
+            if (refs.bookNowBtn) {
+                refs.bookNowBtn.addEventListener("click", () => {
+                    showBookingModal(state, computeCosts(state));
+                });
+            }
             refs.avoidExpresswayBtn.addEventListener("click", () => setRoutePreference(false));
             refs.selfDriveBtn.addEventListener("click", () => setTripMode(false));
             refs.withDriverBtn.addEventListener("click", () => setTripMode(true));
@@ -2523,17 +2544,6 @@
             renderTripCost();
             bindEvents();
             updateStepProgress();
-
-            // Booking is intentionally disabled in logic-only mode.
-            const bookBtn = document.getElementById("bookNowBtn");
-            const bookingStatus = document.getElementById("bookingStatus");
-            if (bookBtn) {
-                bookBtn.disabled = true;
-                bookBtn.title = "Booking disabled";
-            }
-            if (bookingStatus) {
-                bookingStatus.textContent = "Booking is disabled in this build.";
-            }
         }
 
         init();
